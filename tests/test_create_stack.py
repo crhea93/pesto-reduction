@@ -4,7 +4,7 @@ Tests for create_stack module.
 
 import numpy as np
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from astropy.wcs import WCS
 from pesto_reduction.create_stack import (
     build_global_wcs,

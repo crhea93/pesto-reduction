@@ -3,12 +3,10 @@ from astropy.wcs import WCS
 import numpy as np
 from dfreproject import calculate_reprojection
 from scipy import ndimage
-from astropy.stats import sigma_clipped_stats, mad_std
-from astropy.convolution import Gaussian2DKernel, convolve
+from astropy.stats import mad_std
 from skimage.filters import gaussian
 import warnings
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 
 
 def estimate_background_2d(data, box_size=64, filter_size=3):
@@ -190,7 +188,7 @@ def plot_footprints(images, output_path):
 
     im = ax.imshow(combined_mask, cmap="hot", origin="lower", interpolation="nearest")
     ax.set_title(
-        f"Combined Coverage Map\n(shows number of images covering each pixel)",
+        "Combined Coverage Map\n(shows number of images covering each pixel)",
         fontsize=12,
         fontweight="bold",
     )
@@ -430,7 +428,7 @@ def mosaic_images(
     total_pixels = mosaic.size
     coverage = 100.0 * valid_pixels / total_pixels
 
-    print(f"[INFO] Final statistics:")
+    print("[INFO] Final statistics:")
     print(f"[INFO]   Coverage: {coverage:.1f}% ({valid_pixels}/{total_pixels} pixels)")
     print(f"[INFO]   Mean: {np.nanmean(mosaic):.2f}")
     print(f"[INFO]   Std: {np.nanstd(mosaic):.2f}")

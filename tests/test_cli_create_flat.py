@@ -3,8 +3,7 @@ Tests for the create_flat CLI module.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, call
-import argparse
+from unittest.mock import patch
 from pesto_reduction.cli.create_flat import parse_args, main
 
 

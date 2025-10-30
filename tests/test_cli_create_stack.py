@@ -3,8 +3,7 @@ Tests for the create_stack CLI module.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, call
-import os
+from unittest.mock import patch
 from pesto_reduction.cli.create_stack import parse_args, main
 
 

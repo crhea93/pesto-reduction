@@ -1,9 +1,6 @@
 import numpy as np
 import pytest
-from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
-import tempfile
-import os
+from unittest.mock import patch
 from astropy.io import fits
 from pesto_reduction.flats import (
     load_flats,

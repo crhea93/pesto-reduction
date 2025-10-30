@@ -4,9 +4,7 @@ Pytest configuration and shared fixtures for pesto_reduction tests.
 
 import pytest
 import numpy as np
-from pathlib import Path
 from astropy.io import fits
-import tempfile
 
 
 @pytest.fixture

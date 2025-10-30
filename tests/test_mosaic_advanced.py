@@ -2,7 +2,6 @@
 Advanced tests for mosaic module covering remaining functionality.
 """
 
-import pytest
 import numpy as np
 from unittest.mock import patch, MagicMock
 from pathlib import Path
@@ -13,7 +12,6 @@ from pesto_reduction.mosaic import (
     create_smooth_weight_map,
     match_images_photometrically,
     combine_images_seamlessly,
-    assess_mosaic_quality,
 )
 
 

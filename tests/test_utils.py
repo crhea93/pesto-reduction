@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
-from pathlib import Path
-from unittest.mock import patch, MagicMock, call
-import subprocess
+from unittest.mock import patch, MagicMock
 from astropy.io import fits
 from pesto_reduction.utils import (
     get_coords,

@@ -26,7 +26,6 @@ from astropy.wcs import WCS
 from joblib import Parallel, delayed
 
 from astropy.io import fits
-import numpy as np
 
 
 def build_global_wcs(ra, dec, pixel_scale=1.0, field_size_arcmin=30.0):

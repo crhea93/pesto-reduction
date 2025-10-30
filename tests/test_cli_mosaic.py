@@ -3,8 +3,7 @@ Tests for the mosaic CLI module.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, call
-import os
+from unittest.mock import patch
 from pesto_reduction.cli.mosaic import parse_args, main
 
 
