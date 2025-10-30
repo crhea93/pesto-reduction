@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pesto_reduction"                 # what “pip install” will see on PyPI
+version = "0.1.0"                 # bump with each release
+description = "Reduce Pesto"
+authors = [{name = "Carter Rhea", email = "carterrhea93@gmail.com"}]
+readme = "README.md"
+requires-python = ">=3.9"
+
+[tool.setuptools]
+package-dir = {"" = "src"}        # tell setuptools that packages live in src/
+
+[tool.setuptools.packages.find]
+where = ["src"]                   # auto-find any packages under src/
+
+[project.scripts]
+pesto-create-stack = "pesto_reduction.cli.create_stack:main"
+pesto-mosaic = "pesto_reduction.cli.mosaic:main"
+pesto-create-flat = "pesto_reduction.cli.create_flat:main"

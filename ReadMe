@@ -1,0 +1,46 @@
+# pesto-reduction
+
+
+# Basic Usage:
+In order to create a final mosaic image, we must create a series of intermediate products.
+First, we must create a master flat. This can be done with:
+```shell
+pesto-create-flat \
+    --data_dir /path/to/flat/frames \
+    --output_path /path/to/output/master_flat.fits \
+    --bias_level 300 \
+    --crop_size 500
+```
+
+Then, we create stacks for each position:
+```shell
+pesto-create-stack    --filter Ha     --name Arp94     --output_dir /home/carterrhea/Documents/OMM-Cleaned/Arp94     --data_root /home/carterrhea/Documents/OMM-Data/210413     --n_pos 6
+```
+
+Finally, we create the mosaic with:
+```shell
+pesto-mosaic     --filter i     --name Arp94     --output_dir /home/carterrhea/Documents/OMM-Cleaned/Arp94     --n_pos 6     --combine median
+```
+
+
+
+### Download index files
+```bash
+#!/bin/bash
+
+BASE_URL="http://portal.nersc.gov/project/cosmo/temp/dstn/index-5200/LITE"
+
+for i in $(seq -w 0 47); do
+    FILE="index-5200-${i}.fits"
+    echo "Downloading $FILE ..."
+    wget -c "${BASE_URL}/${FILE}"
+done
+```
+
+
+# Example
+## 241109
+We can first create our master flat as follows:
+```shell
+pesto-create-flat --data_dir /home/carterrhea/Documents/OMM-Data/241109/DomeFlat --output_path /home/carterrhea/Documents/OMM-Clean/241109/ --bias_level 300
+```
