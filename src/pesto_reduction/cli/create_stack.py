@@ -1,5 +1,6 @@
-import os
 import argparse
+import os
+
 from pesto_reduction.create_stack import create_stack
 
 
@@ -19,6 +20,12 @@ def parse_args():
     )
     parser.add_argument(
         "--n_pos", type=int, default=6, help="Number of positions (default: 6)"
+    )
+    parser.add_argument(
+        "--bias-level",
+        type=float,
+        default=300.0,
+        help="Bias level to subtract from light frames (default: 300.0). Must match the bias level used when creating the master flat.",
     )
     return parser.parse_args()
 
@@ -41,7 +48,7 @@ def main():
     for i in range(args.n_pos):
         i += 1
         pos = f"{args.name}_pos{i}"
-        data_dir = os.path.join(args.data_root, "Target", pos)
+        data_dir = os.path.join(args.data_root, "Target", pos, "redux")
         if not os.path.isdir(data_dir):
             print(f"[WARNING] Skipping {pos}: directory not found.")
             continue
@@ -54,6 +61,7 @@ def main():
             output_dir=args.output_dir,
             flat_path=flat_path,
             target_name=args.name,
+            bias_level=args.bias_level,
         )
 
 
