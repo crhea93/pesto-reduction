@@ -31,7 +31,6 @@ where = ["src"]                   # auto-find any packages under src/
 pesto-create-stack = "pesto_reduction.cli.create_stack:main"
 pesto-mosaic = "pesto_reduction.cli.mosaic:main"
 pesto-create-flat = "pesto_reduction.cli.create_flat:main"
-pesto-optimize-bias = "pesto_reduction.cli.optimize_bias:main"
 
 [project.optional-dependencies]
 test = [

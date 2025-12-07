@@ -25,7 +25,30 @@ def parse_args():
         "--bias-level",
         type=float,
         default=300.0,
-        help="Bias level to subtract from light frames (default: 300.0). Must match the bias level used when creating the master flat.",
+        help="Bias level to subtract from light frames (default: 300.0). Only used if --optimize-bias is not set.",
+    )
+    parser.add_argument(
+        "--optimize-bias",
+        action="store_true",
+        help="Optimize bias level independently for each light frame by minimizing correlation with flat pattern.",
+    )
+    parser.add_argument(
+        "--bias-min",
+        type=float,
+        default=100.0,
+        help="Minimum bias value to search when optimizing (default: 100.0)",
+    )
+    parser.add_argument(
+        "--bias-max",
+        type=float,
+        default=600.0,
+        help="Maximum bias value to search when optimizing (default: 600.0)",
+    )
+    parser.add_argument(
+        "--n-jobs",
+        type=int,
+        default=-1,
+        help="Number of parallel jobs for processing (default: -1, use all CPUs)",
     )
     return parser.parse_args()
 
@@ -62,6 +85,9 @@ def main():
             flat_path=flat_path,
             target_name=args.name,
             bias_level=args.bias_level,
+            optimize_bias=args.optimize_bias,
+            bias_range=(args.bias_min, args.bias_max),
+            n_jobs=args.n_jobs,
         )
 
 

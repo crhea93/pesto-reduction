@@ -68,27 +68,113 @@ def build_global_wcs(ra, dec, pixel_scale=1.0, field_size_arcmin=30.0):
     return output_wcs, (ny, nx)
 
 
-def process_light(light, master_flat, output_wcs, output_shape, ra, dec, bias_level):
+def process_light(
+    light,
+    master_flat,
+    output_wcs,
+    output_shape,
+    ra,
+    dec,
+    bias_level,
+    optimize_bias=True,
+    bias_range=(100, 600),
+):
     try:
         # light_header = fits.getheader(light)
-        light_vals = fits.getdata(light).astype("float32")[:-1, :]
-        light_vals -= bias_level  # Subtract bias
+        light_vals_raw = fits.getdata(light).astype("float32")[:-1, :]
         light_basename = os.path.basename(light)
+
+        # Optimize bias for this specific light frame if requested
+        if optimize_bias:
+            from scipy.ndimage import median_filter
+            from scipy.optimize import minimize_scalar
+
+            # Pre-compute source mask using a rough bias estimate
+            # This is independent of the exact bias value and only needs to be computed once
+            rough_bias = np.mean(bias_range)
+            temp_corrected = (light_vals_raw - rough_bias) / master_flat
+
+            # Detect sources on downsampled image for speed (4x downsampling)
+            # from skimage.transform import downscale_local_mean, resize
+
+            # temp_small = downscale_local_mean(temp_corrected, (1, 1))
+
+            # Use smaller filter for speed (downsampled, so use size=6 ~= 25/4)
+            background_small = median_filter(temp_corrected, size=50)
+            residual_small = temp_corrected - background_small
+
+            # Compute robust statistics (median absolute deviation)
+            median_res = np.nanmedian(residual_small)
+            mad = np.nanmedian(np.abs(residual_small - median_res))
+            sigma = 1.4826 * mad  # Convert MAD to std deviation
+
+            # Mask pixels more than 3-sigma above background (sources)
+            source_mask = residual_small > 3 * sigma
+
+            # # Upscale mask back to full resolution
+            # source_mask = (
+            #     resize(
+            #         source_mask_small.astype(float),
+            #         light_vals_raw.shape,
+            #         order=0,
+            #         preserve_range=True,
+            #         anti_aliasing=False,
+            #     )
+            #     > 0.5
+            # )
+            source_mask = source_mask | ~np.isfinite(master_flat)
+            background_pixels = ~source_mask
+
+            if np.sum(background_pixels) < 1000:
+                logger.warning(
+                    f"{light_basename}: Not enough background pixels, using simple optimization"
+                )
+                # Fall back to simple method without source masking
+                background_pixels = np.isfinite(master_flat)
+
+            def objective(bias):
+                """Find bias that minimizes correlation with flat, using pre-computed mask."""
+                light_minus_bias = light_vals_raw - bias
+                corrected = light_minus_bias / master_flat
+
+                # Use pre-computed background pixel mask
+                valid = background_pixels & np.isfinite(corrected)
+
+                if np.sum(valid) < 1000:
+                    return 1.0
+
+                # Compute correlation between corrected background and flat
+                corr = np.corrcoef(
+                    corrected[valid].flatten(),
+                    master_flat[valid].flatten(),
+                )[0, 1]
+
+                return abs(corr)
+
+            result = minimize_scalar(objective, bounds=bias_range, method="bounded")
+            optimal_bias = result.x
+            min_corr = result.fun
+            logger.info(
+                f"{light_basename}: optimal bias = {optimal_bias:.2f}, correlation = {min_corr:.6f}"
+            )
+            light_vals = light_vals_raw - optimal_bias
+        else:
+            light_vals = light_vals_raw - bias_level
 
         # Apply flat field correction
         light_vals = light_vals / master_flat.astype("float32")
 
-        # light_vals = remove_cosmic(light_vals)
+        light_vals = remove_cosmic(light_vals)
         # light_vals = subtract_background(light_vals)
         # # wcs_solved_path = solve_field(
         # #     light, scale_low=0.2, scale_high=1.0, ra=ra, dec=dec, radius=10
         # # )
-        # light_vals = calculate_reprojection(
-        #     source_hdus=(light_vals, fits.getheader(light)),
-        #     target_wcs=output_wcs,
-        #     shape_out=output_shape,
-        #     order="bilinear",
-        # )
+        light_vals = calculate_reprojection(
+            source_hdus=(light_vals, fits.getheader(light)),
+            target_wcs=output_wcs,
+            shape_out=output_shape,
+            order="bilinear",
+        )
         #
         fits.writeto(
             f"/home/carterrhea/Downloads/{light_basename}_processed.fits",
@@ -106,7 +192,16 @@ def process_light(light, master_flat, output_wcs, output_shape, ra, dec, bias_le
 
 
 def create_stack(
-    filter_, pos, data_dir, output_dir, flat_path, target_name, bias_level=300.0
+    filter_,
+    pos,
+    data_dir,
+    output_dir,
+    flat_path,
+    target_name,
+    bias_level=300.0,
+    optimize_bias=False,
+    bias_range=(290, 310),
+    n_jobs=4,
 ):
     """
     Create a median-stacked, background-subtracted, WCS-aligned image for a given position and filter.
@@ -132,7 +227,15 @@ def create_stack(
     Name of the astronomical target, used to look up sky coordinates for astrometric solving.
     bias_level : float, optional
     Constant bias value to subtract from each light frame, by default 300.0.
-    Must match the bias level used when creating the master flat.
+    Only used if optimize_bias is False.
+    optimize_bias : bool, optional
+    If True, optimize the bias level independently for each light frame
+    by minimizing correlation with the flat pattern, by default False.
+    bias_range : tuple of float, optional
+    (min, max) range to search for optimal bias per frame, by default (100, 600).
+    Only used if optimize_bias is True.
+    n_jobs : int, optional
+    Number of parallel jobs for processing light frames, by default -1 (use all CPUs).
 
     Returns
     -------
@@ -155,9 +258,17 @@ def create_stack(
         output_wcs, output_shape = build_global_wcs(
             ra, dec, pixel_scale=0.495
         )  # arcsec/pixel
-        light_data = Parallel(n_jobs=1, backend="multiprocessing")(
+        light_data = Parallel(n_jobs=n_jobs, backend="multiprocessing")(
             delayed(process_light)(
-                light, master_flat, output_wcs, output_shape, ra, dec, bias_level
+                light,
+                master_flat,
+                output_wcs,
+                output_shape,
+                ra,
+                dec,
+                bias_level,
+                optimize_bias,
+                bias_range,
             )
             for light in valid_light_paths
         )
